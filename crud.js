@@ -1,92 +1,162 @@
 import { Policyholder, Policy, Claim } from "./entities.js";
+import { PrismaClient } from '@prisma/client';
 
-const policyholders = new Map();
-const policies = new Map();
-const claims = new Map();
+const prisma = new PrismaClient();
 
-// ✅ Policyholder CRUD
-export function createPolicyholder(id, name, contactInfo) {
-  if (policyholders.has(id)) throw new Error("Policyholder already exists.");
-  if (!name || typeof name !== "string") throw new Error("Invalid name.");
-  if (!contactInfo || !/\S+@\S+\.\S+/.test(contactInfo)) throw new Error("Invalid contact info."); // Simple email validation
+// ✅ Create a new policyholder with validation
+export async function createPolicyholder(id, name, contactInfo) {
+  if (!name || !contactInfo) {
+    throw new Error("Name and contact info must not be empty.");
+  }
 
-  policyholders.set(id, new Policyholder(id, name, contactInfo));
+  if (!/^\S+@\S+\.\S+$/.test(contactInfo) && !/^\d{10,15}$/.test(contactInfo)) {
+    throw new Error("Contact info should be a valid email or phone number.");
+  }
+
+  return await prisma.policyholder.create({
+    data: { id, name, contactInfo },
+  });
 }
 
+// ✅ Update a policyholder's name or contact info
+export async function updatePolicyholder(id, name, contactInfo) {
+  const policyholder = await prisma.policyholder.findUnique({ where: { id } });
+  if (!policyholder) throw new Error("Policyholder not found.");
 
-export function getPolicyholder(id) {
-    return policyholders.get(id) || null;
+  if (contactInfo && !/^\S+@\S+\.\S+$/.test(contactInfo) && !/^\d{10,15}$/.test(contactInfo)) {
+    throw new Error("Contact info should be a valid email or phone number.");
+  }
+
+  return await prisma.policyholder.update({
+    where: { id },
+    data: { name: name || policyholder.name, contactInfo: contactInfo || policyholder.contactInfo },
+  });
 }
 
-export function updatePolicyholder(id, name, contactInfo) {
-    if (!policyholders.has(id)) throw new Error("Policyholder not found.");
-    const policyholder = policyholders.get(id);
-    if (name) policyholder.name = name;
-    if (contactInfo) policyholder.contactInfo = contactInfo;
+// ✅ Retrieve a policyholder
+export async function getPolicyholder(id) {
+  return await prisma.policyholder.findUnique({ where: { id } });
 }
 
-export function deletePolicyholder(id) {
-    if (!policyholders.has(id)) throw new Error("Policyholder not found.");
-    policyholders.delete(id);
+// ✅ Create a new policy with validation
+export async function createPolicy(id, policyholderId, policyAmount) {
+  if (policyAmount <= 0) {
+    throw new Error("The policy amount must be greater than 0.");
+  }
+
+  const policyholder = await prisma.policyholder.findUnique({
+    where: { id: policyholderId },
+    include: { policies: true },
+  });
+
+  if (!policyholder) {
+    throw new Error("Invalid Policyholder ID.");
+  }
+
+  if (policyholder.policies.length >= 5) {
+    throw new Error("A policyholder cannot have more than 5 policies.");
+  }
+
+  return await prisma.policy.create({
+    data: { id, policyholderId, policyAmount },
+  });
 }
 
-// ✅ Policy CRUD
-export function createPolicy(id, policyholderId, policyAmount) {
-  if (!policyholders.has(policyholderId)) throw new Error("Invalid Policyholder.");
-  if (policyAmount <= 0) throw new Error("Policy amount must be greater than 0.");
+// ✅ Update a policy (only amount)
+export async function updatePolicy(id, policyAmount) {
+  if (policyAmount <= 0) {
+    throw new Error("The policy amount must be greater than 0.");
+  }
 
-  // Check if policyholder has more than 5 policies
-  const policiesOwned = [...policies.values()].filter(p => p.policyholderId === policyholderId);
-  if (policiesOwned.length >= 5) throw new Error("A policyholder cannot have more than 5 policies.");
+  const policy = await prisma.policy.findUnique({ where: { id } });
+  if (!policy) throw new Error("Policy not found.");
 
-  policies.set(id, new Policy(id, policyholderId, policyAmount));
+  return await prisma.policy.update({
+    where: { id },
+    data: { policyAmount },
+  });
 }
 
-
-export function getPolicy(id) {
-    return policies.get(id) || null;
+// ✅ Retrieve policies for a policyholder
+export async function getPoliciesByPolicyholder(policyholderId) {
+  return await prisma.policy.findMany({ where: { policyholderId } });
 }
 
-export function updatePolicy(id, policyAmount) {
-    if (!policies.has(id)) throw new Error("Policy not found.");
-    const policy = policies.get(id);
-    if (policyAmount) policy.policyAmount = policyAmount;
+// ✅ Create a claim with validation
+export async function createClaim(id, policyId, claimAmount) {
+  if (claimAmount <= 0) {
+    throw new Error("The claim amount must be greater than 0.");
+  }
+
+  const policy = await prisma.policy.findUnique({
+    where: { id: policyId },
+    include: { claims: true, policyholder: true },
+  });
+
+  if (!policy) {
+    throw new Error("Invalid Policy ID.");
+  }
+
+  if (claimAmount > policy.policyAmount) {
+    throw new Error("Claim amount exceeds policy coverage.");
+  }
+
+  const policyholderId = policy.policyholder.id;
+  const activeClaims = await prisma.claim.count({
+    where: { policy: { policyholderId } },
+  });
+
+  if (activeClaims >= 3) {
+    throw new Error("A policyholder cannot have more than 3 active claims at a time.");
+  }
+
+  return await prisma.claim.create({
+    data: { id, policyId, amount: claimAmount },
+  });
 }
 
-export function deletePolicy(id) {
-    if (!policies.has(id)) throw new Error("Policy not found.");
-    policies.delete(id);
+// ✅ Update a claim (only claim amount)
+export async function updateClaim(id, claimAmount) {
+  if (claimAmount <= 0) {
+    throw new Error("The claim amount must be greater than 0.");
+  }
+
+  const claim = await prisma.claim.findUnique({
+    where: { id },
+    include: { policy: true },
+  });
+
+  if (!claim) throw new Error("Claim not found.");
+  if (claimAmount > claim.policy.policyAmount) {
+    throw new Error("Claim amount exceeds policy coverage.");
+  }
+
+  return await prisma.claim.update({
+    where: { id },
+    data: { amount: claimAmount },
+  });
 }
 
-// ✅ Claim CRUD (with validation)
-export function createClaim(id, policyId, claimAmount) {
-  if (!policies.has(policyId)) throw new Error("Invalid Policy.");
-  const policy = policies.get(policyId);
-  if (claimAmount <= 0) throw new Error("Claim amount must be greater than 0.");
-  if (claimAmount > policy.policyAmount) throw new Error("Claim exceeds policy amount.");
-
-  // Check if the policyholder already has 3 active claims
-  const policyholderId = policy.policyholderId;
-  const activeClaims = [...claims.values()].filter(c => policies.get(c.policyId).policyholderId === policyholderId);
-  if (activeClaims.length >= 3) throw new Error("A policyholder cannot have more than 3 active claims.");
-
-  claims.set(id, new Claim(id, policyId, claimAmount));
+// ✅ Retrieve claims for a policy
+export async function getClaimsByPolicy(policyId) {
+  return await prisma.claim.findMany({ where: { policyId } });
 }
 
-
-export function getClaim(id) {
-    return claims.get(id) || null;
+// ✅ Delete operations
+export async function deletePolicyholder(id) {
+  return await prisma.policyholder.delete({ where: { id } });
 }
 
-export function updateClaim(id, claimAmount) {
-    if (!claims.has(id)) throw new Error("Claim not found.");
-    const claim = claims.get(id);
-    const policy = policies.get(claim.policyId);
-    if (claimAmount > policy.policyAmount) throw new Error("Claim exceeds policy amount.");
-    claim.claimAmount = claimAmount;
+export async function deletePolicy(id) {
+  return await prisma.policy.delete({ where: { id } });
 }
 
-export function deleteClaim(id) {
-    if (!claims.has(id)) throw new Error("Claim not found.");
-    claims.delete(id);
+export async function deleteClaim(id) {
+  return await prisma.claim.delete({ where: { id } });
 }
+
+// ✅ Gracefully close Prisma connection
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});

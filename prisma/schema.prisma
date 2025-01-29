@@ -1,0 +1,33 @@
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Policyholder {
+  id          String   @id @default(uuid())
+  name        String
+  contactInfo String
+  policies    Policy[] @relation("PolicyholderToPolicy") // ✅ Added relation name
+}
+
+model Policy {
+  id             String   @id @default(uuid())
+  policyholderId String
+  policyAmount   Float
+  claims         Claim[]
+
+  policyholder   Policyholder @relation(fields: [policyholderId], references: [id], name: "PolicyholderToPolicy") // ✅ Fixed relation
+}
+
+model Claim {
+  id       String @id @default(uuid())
+  policyId String
+  amount   Float
+
+  policy   Policy @relation(fields: [policyId], references: [id]) // ✅ Relation is correct
+}
