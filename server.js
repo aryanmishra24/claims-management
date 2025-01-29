@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import { createPolicyholder, getPolicyholder, createPolicy, createClaim } from "./crud.js";
-
+const PORT = process.env.PORT || 3000;
 const fastify = Fastify({ logger: true });
 
 // Routes
@@ -35,7 +35,7 @@ fastify.post("/claims", async (request, reply) => {
 });
 
 // Start Server
-fastify.listen({ port: 3000 }, (err, address) => {
+fastify.listen({ port: PORT }, (err, address) => {
   if (err) {
     console.error(err);
     process.exit(1);
