@@ -36,7 +36,7 @@ fastify.post("/claims", async (request, reply) => {
 });
 
 // Start Server
-fastify.listen({ port: Number(port), host: '0.0.0.0' }, (err, address) => {
+fastify.listen({ port, host: '0.0.0.0' }, (err, address) => {
   if (err) {
     console.error(err);
     process.exit(1);
