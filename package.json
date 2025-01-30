@@ -11,9 +11,12 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.4.2",
+    "@fastify/swagger-ui": "^5.2.1",
     "@prisma/client": "^6.3.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
+    "fastify-swagger": "^5.2.0",
     "pg": "^8.13.1"
   }
 }
