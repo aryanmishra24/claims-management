@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const swagger = require("@fastify/swagger");
 const swaggerUI = require("@fastify/swagger-ui");
 const { createPolicyholder, createPolicy, createClaim } = require("./crud.js");
+import cors from "@fastify/cors";
 
 dotenv.config(); // Load environment variables
 
@@ -28,130 +29,46 @@ const swaggerOptions = {
 fastify.register(swagger, swaggerOptions);
 fastify.register(swaggerUI, { routePrefix: "/docs", exposeRoute: true });
 
-/** API Routes */
-fastify.get("/", async (request, reply) => {
-  return { message: "Server is running" };
+
+fastify.register(cors, {
+  origin: "*", // Allow all origins (change to specific frontend URL if needed)
+  methods: ["GET", "POST", "PUT", "DELETE"],
 });
 
-fastify.post(
-  "/policyholders",
-  {
-    schema: {
-      summary: "Create a Policyholder",
-      description: "Registers a new policyholder in the system.",
-      tags: ["Policyholders"],
-      body: {
-        type: "object",
-        required: ["id", "name", "contactInfo"],
-        properties: {
-          id: { type: "string", description: "Unique Policyholder ID" },
-          name: { type: "string", description: "Full Name" },
-          contactInfo: { type: "string", description: "Contact Details" },
-        },
-      },
-      response: {
-        201: {
-          description: "Policyholder Created",
-          type: "object",
-          properties: { message: { type: "string" } },
-        },
-        400: {
-          description: "Invalid Data",
-          type: "object",
-          properties: { error: { type: "string" } },
-        },
-      },
-    },
-  },
-  async (request, reply) => {
-    try {
-      await createPolicyholder(request.body.id, request.body.name, request.body.contactInfo);
-      reply.code(201).send({ message: "Policyholder created successfully" });
-    } catch (err) {
-      reply.code(400).send({ error: err.message });
-    }
+// Routes
+// ✅ Create Policyholder (Correct)
+fastify.post("/policyholders", async (request, reply) => {
+  const { id, name, contactInfo } = request.body;
+  try {
+    await createPolicyholder(id, name, contactInfo);
+    reply.send({ message: "Policyholder created" });
+  } catch (err) {
+    reply.status(400).send({ error: err.message });
   }
-);
+});
 
-fastify.post(
-  "/policies",
-  {
-    schema: {
-      summary: "Create a Policy",
-      description: "Assigns a new policy to an existing policyholder.",
-      tags: ["Policies"],
-      body: {
-        type: "object",
-        required: ["id", "policyholderId", "policyAmount"],
-        properties: {
-          id: { type: "string", description: "Unique Policy ID" },
-          policyholderId: { type: "string", description: "Associated Policyholder ID" },
-          policyAmount: { type: "number", description: "Total Policy Amount" },
-        },
-      },
-      response: {
-        201: {
-          description: "Policy Created",
-          type: "object",
-          properties: { message: { type: "string" } },
-        },
-        400: {
-          description: "Invalid Data",
-          type: "object",
-          properties: { error: { type: "string" } },
-        },
-      },
-    },
-  },
-  async (request, reply) => {
-    try {
-      await createPolicy(request.body.id, request.body.policyholderId, request.body.policyAmount);
-      reply.code(201).send({ message: "Policy created successfully" });
-    } catch (err) {
-      reply.code(400).send({ error: err.message });
-    }
+// ✅ Create Policy (Fixed)
+fastify.post("/policies", async (request, reply) => {
+  const { id, policyholderId, policyAmount } = request.body; // ✅ Extract correct fields
+  try {
+    await createPolicy(id, policyholderId, policyAmount);
+    reply.send({ message: "Policy created" });
+  } catch (err) {
+    reply.status(400).send({ error: err.message });
   }
-);
+});
 
-fastify.post(
-  "/claims",
-  {
-    schema: {
-      summary: "File a Claim",
-      description: "Creates a claim for an existing policy.",
-      tags: ["Claims"],
-      body: {
-        type: "object",
-        required: ["id", "policyId", "claimAmount"],
-        properties: {
-          id: { type: "string", description: "Unique Claim ID" },
-          policyId: { type: "string", description: "Associated Policy ID" },
-          claimAmount: { type: "number", description: "Claimed Amount" },
-        },
-      },
-      response: {
-        201: {
-          description: "Claim Created",
-          type: "object",
-          properties: { message: { type: "string" } },
-        },
-        400: {
-          description: "Invalid Data",
-          type: "object",
-          properties: { error: { type: "string" } },
-        },
-      },
-    },
-  },
-  async (request, reply) => {
-    try {
-      await createClaim(request.body.id, request.body.policyId, request.body.claimAmount);
-      reply.code(201).send({ message: "Claim created successfully" });
-    } catch (err) {
-      reply.code(400).send({ error: err.message });
-    }
+// ✅ Create Claim (Fixed)
+fastify.post("/claims", async (request, reply) => {
+  const { id, policyId, claimAmount } = request.body; // ✅ Extract correct fields
+  try {
+    await createClaim(id, policyId, claimAmount);
+    reply.send({ message: "Claim created" });
+  } catch (err) {
+    reply.status(400).send({ error: err.message });
   }
-);
+});
+
 
 /** Start Server */
 fastify.listen({ port: Number(port), host: "0.0.0.0" }, (err, address) => {
