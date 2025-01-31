@@ -10,6 +10,12 @@ const handleError = (error) => {
 
 // ✅ Create a new policyholder with validation
 export async function createPolicyholder(id, name, contactInfo) {
+  const existing = await prisma.policyholder.findUnique({
+    where: { id: "some-id" }
+  });
+  if (existing) {
+    throw new Error("Policyholder with this ID already exists.");
+  }
   try {
     if (!name || !contactInfo) {
       throw new Error("Name and contact info must not be empty.");
@@ -53,6 +59,12 @@ export async function getPolicyholder(id) {
 
 // ✅ Create a new policy with validation
 export async function createPolicy(id, policyholderId, policyAmount) {
+  const existing = await prisma.policy.findUnique({
+    where: { id: "some-id" }
+  });
+  if (existing) {
+    throw new Error("Policy with this ID already exists.");
+  }
   try {
     if (policyAmount <= 0) {
       throw new Error("The policy amount must be greater than 0.");
@@ -105,6 +117,12 @@ export async function getPoliciesByPolicyholder(policyholderId) {
 
 // ✅ Create a claim with validation
 export async function createClaim(id, policyId, claimAmount) {
+  const existing = await prisma.claim.findUnique({
+    where: { id: "some-id" }
+  });
+  if (existing) {
+    throw new Error("Claim with this ID already exists.");
+  }
   try {
     if (claimAmount <= 0) {
       throw new Error("The claim amount must be greater than 0.");
