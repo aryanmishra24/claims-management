@@ -5,11 +5,41 @@ const swagger = require("@fastify/swagger");
 const swaggerUI = require("@fastify/swagger-ui");
 const { createPolicyholder, createPolicy, createClaim } = require("./crud.js");
 import cors from "@fastify/cors";
+const API_SECRET_KEY = process.env.API_KEY ;
+
+import fastifyMetrics from "fastify-metrics";
+import pino from "pino";
+
+// Initialize Fastify with logging
+const fastify = Fastify({
+  logger: {
+    level: 'info', // Set the logging level
+  }
+});
+
+
+
+
+// Enable Prometheus metrics
+fastify.register(fastifyMetrics, { endpoint: "/metrics" });
+
+// Sample route
+fastify.get("/", async (request, reply) => {
+  return { message: "Monitoring Setup Running!" };
+});
+
+// Middleware to check API Key
+fastify.addHook('preHandler', async (req, reply) => {
+    const apiKey = req.headers['x-api-key']; // Read API key from headers
+    if (!apiKey || apiKey !== API_SECRET_KEY) {
+        reply.code(403).send({ error: 'Forbidden: Invalid API Key' });
+    }
+});
+
 
 dotenv.config(); // Load environment variables
 
 const port = process.env.PORT || 3000;
-const fastify = Fastify({ logger: true });
 
 /** Swagger Configuration */
 const swaggerOptions = {
