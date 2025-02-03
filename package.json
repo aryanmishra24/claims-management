@@ -1,6 +1,9 @@
 {
   "name": "claims-management",
-  "module": "index.ts",
+  "module": "server.js",
+  "scripts": {
+    "start": "bun run server.js"
+  },
   "type": "module",
   "devDependencies": {
     "@types/bun": "latest",

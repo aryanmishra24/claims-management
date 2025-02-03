@@ -1,0 +1,28 @@
+
+services:
+  db:
+    image: postgres:latest
+    container_name: claims-db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: claims_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: claims-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://aryan:Gladiator&hissons@db:5432/claims_db
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:

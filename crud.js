@@ -207,3 +207,18 @@ process.on("SIGINT", async () => {
   await prisma.$disconnect();
   process.exit(0);
 });
+
+// ✅ Get all policyholders
+export async function getAllPolicyholders() {
+  return await prisma.policyholder.findMany();
+}
+
+// ✅ Get all policies
+export async function getAllPolicies() {
+  return await prisma.policy.findMany();
+}
+
+// ✅ Get all claims
+export async function getAllClaims() {
+  return await prisma.claim.findMany();
+}

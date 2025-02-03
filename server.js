@@ -3,7 +3,8 @@ const Fastify = require("fastify");
 const dotenv = require("dotenv");
 const swagger = require("@fastify/swagger");
 const swaggerUI = require("@fastify/swagger-ui");
-const { createPolicyholder, createPolicy, createClaim } = require("./crud.js");
+const { createPolicyholder, createPolicy, createClaim,getAllPolicyholders, getAllPolicies, getAllClaims  } 
+        = require("./crud.js");
 import cors from "@fastify/cors";
 const API_SECRET_KEY = process.env.API_KEY ;
 
@@ -16,6 +17,7 @@ const fastify = Fastify({
     level: 'info', // Set the logging level
   }
 });
+
 
 
 
@@ -74,6 +76,37 @@ fastify.post("/policyholders", async (request, reply) => {
     reply.send({ message: "Policyholder created" });
   } catch (err) {
     reply.status(400).send({ error: err.message });
+  }
+});
+
+
+// ✅ Get all policyholders
+fastify.get("/policyholders", async (request, reply) => {
+  try {
+    const policyholders = await getAllPolicyholders();
+    reply.send(policyholders);
+  } catch (err) {
+    reply.status(500).send({ error: err.message });
+  }
+});
+
+// ✅ Get all policies
+fastify.get("/policies", async (request, reply) => {
+  try {
+    const policies = await getAllPolicies();
+    reply.send(policies);
+  } catch (err) {
+    reply.status(500).send({ error: err.message });
+  }
+});
+
+// ✅ Get all claims
+fastify.get("/claims", async (request, reply) => {
+  try {
+    const claims = await getAllClaims();
+    reply.send(claims);
+  } catch (err) {
+    reply.status(500).send({ error: err.message });
   }
 });
 
